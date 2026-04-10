@@ -31,7 +31,7 @@ class FileRecord:
     file_size: int
     status: TransferStatus = TransferStatus.PENDING
     checksum: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    transferred_at: Optional[datetime] = None
     error: Optional[str] = None
 
 
@@ -43,6 +43,13 @@ class TransferSession:
     destination_path: str
     total_files: int
     files: List[FileRecord] = field(default_factory=list)
+
+    def __post_init__(self):
+        if self.files and self.total_files != len(self.files) and self.total_files > 0:
+            # If files are provided at construction, total_files must match
+            raise ValueError(
+                f"total_files ({self.total_files}) != len(files) ({len(self.files)})"
+            )
 
     @property
     def total_size_bytes(self) -> int:
@@ -58,6 +65,8 @@ class TransferSession:
 
     @property
     def is_complete(self) -> bool:
+        if not self.files:
+            return False
         return all(
             f.status in (TransferStatus.COMPLETED, TransferStatus.SKIPPED, TransferStatus.FAILED)
             for f in self.files

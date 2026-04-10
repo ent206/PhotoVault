@@ -40,3 +40,38 @@ def test_transfer_session_total_size():
         ]
     )
     assert session.total_size_bytes == 3000
+
+
+def test_is_complete_empty_files():
+    session = TransferSession(
+        session_id="s1",
+        started_at=datetime(2024, 1, 1),
+        source_device="Mock",
+        destination_path="/dst",
+        total_files=0,
+        files=[],
+    )
+    assert session.is_complete is False
+
+
+def test_is_complete_with_all_statuses():
+    session = TransferSession(
+        session_id="s2",
+        started_at=datetime(2024, 1, 1),
+        source_device="Mock",
+        destination_path="/dst",
+        total_files=3,
+        files=[
+            FileRecord("a.jpg", "/s/a", "/d/a", 100, status=TransferStatus.COMPLETED),
+            FileRecord("b.jpg", "/s/b", "/d/b", 100, status=TransferStatus.SKIPPED),
+            FileRecord("c.jpg", "/s/c", "/d/c", 100, status=TransferStatus.FAILED),
+        ]
+    )
+    assert session.is_complete is True
+    assert session.completed_count == 1
+    assert len(session.failed_files) == 1
+
+
+def test_transfer_status_str_values():
+    assert TransferStatus.PENDING == "pending"
+    assert TransferStatus.COMPLETED == "completed"
