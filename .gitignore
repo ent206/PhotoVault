@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+dist/
+build/
+*.spec
+mock_library/
+session_logs/
+settings.json
+.DS_Store
