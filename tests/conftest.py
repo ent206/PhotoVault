@@ -14,4 +14,4 @@ def mock_library_dir(tmp_dir):
     """Creates a minimal mock DCIM structure for tests."""
     dcim = tmp_dir / "DCIM" / "100APPLE"
     dcim.mkdir(parents=True)
-    return tmp_dir
+    yield tmp_dir

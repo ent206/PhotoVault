@@ -5,7 +5,16 @@ __pycache__/
 dist/
 build/
 *.spec
+!photovault.spec
 mock_library/
 session_logs/
 settings.json
 .DS_Store
+.pytest_cache/
+*.egg-info/
+*.egg
+**/.DS_Store
+.coverage
+coverage/
+*.so
+*.pyd
