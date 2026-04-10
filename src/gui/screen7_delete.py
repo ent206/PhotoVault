@@ -91,6 +91,7 @@ class Screen7Delete(ctk.CTkFrame):
         dest = self.app.destination
         deleted = 0
         failed = 0
+        freed_bytes = 0  # track only actually deleted files
 
         for i, asset in enumerate(assets):
             # Pre-verify: destination copy must exist and size must match
@@ -111,6 +112,7 @@ class Screen7Delete(ctk.CTkFrame):
             try:
                 device.delete_file(asset)
                 deleted += 1
+                freed_bytes += asset.file_size  # only count actually deleted files
             except Exception:
                 failed += 1
 
@@ -121,8 +123,7 @@ class Screen7Delete(ctk.CTkFrame):
                 text_color="white"
             ))
 
-        total_freed = sum(a.file_size for a in assets)
-        self.after(0, self._on_done, deleted, failed, total_freed)
+        self.after(0, self._on_done, deleted, failed, freed_bytes)
 
     def _on_done(self, deleted: int, failed: int, freed_bytes: int):
         if not self.winfo_exists():

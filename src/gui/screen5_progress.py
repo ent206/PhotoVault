@@ -13,6 +13,7 @@ class Screen5Progress(ctk.CTkFrame):
         self.app = master
         self._engine: Optional[TransferEngine] = None
         self._paused = False
+        self._cancelled = False
         self._build_ui()
         self._start_transfer()
 
@@ -76,6 +77,10 @@ class Screen5Progress(ctk.CTkFrame):
 
     def _start_transfer(self):
         """Create transfer engine and start it in a background thread."""
+        # Set session_id for resume BEFORE constructing engine
+        if self.app.resume_session:
+            self.app.transfer_options.session_id = self.app.resume_session.session_id
+
         self._engine = TransferEngine(
             device=self.app.device,
             destination=self.app.destination,
@@ -88,9 +93,6 @@ class Screen5Progress(ctk.CTkFrame):
 
     def _run_transfer(self):
         try:
-            # If resuming, use the existing session_id from the resume session
-            if self.app.resume_session:
-                self.app.transfer_options.session_id = self.app.resume_session.session_id
             results = self._engine.transfer(self.app.selected_assets)
             self.after(0, self._on_complete, results)
         except Exception as e:
@@ -129,12 +131,14 @@ class Screen5Progress(ctk.CTkFrame):
             self._paused = False
 
     def _cancel(self):
+        self._cancelled = True
         if self._engine:
             self._engine.cancel()
-        # Go back to connect screen — cancelled files stay at destination (don't delete)
         self.after(500, lambda: self.app.show_screen("connect"))
 
     def _on_complete(self, results: dict):
+        if self._cancelled:
+            return
         self.app.transfer_results = results
         self.app.show_screen("complete")
 

@@ -13,6 +13,7 @@ class Screen3Dates(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent")
         self.app = master
         self._update_thread: Optional[threading.Thread] = None
+        self._pending_refresh = False
         self._build_ui()
         self._refresh_preview()
 
@@ -100,9 +101,14 @@ class Screen3Dates(ctk.CTkFrame):
         self._refresh_preview()
 
     def _refresh_preview(self):
-        # Don't stack threads — skip if one is already running
+        self._pending_refresh = True
         if self._update_thread and self._update_thread.is_alive():
+            # Thread is running; will re-trigger after it completes
             return
+        self._start_refresh_thread()
+
+    def _start_refresh_thread(self):
+        self._pending_refresh = False
         self.preview_label.configure(text="Calculating…")
         self._update_thread = threading.Thread(target=self._compute_preview, daemon=True)
         self._update_thread.start()
@@ -126,6 +132,10 @@ class Screen3Dates(ctk.CTkFrame):
             self.after(0, lambda: self.preview_label.configure(
                 text=f"Error calculating preview: {e}"
             ))
+        finally:
+            # Re-trigger if a refresh was requested while we were computing
+            if self._pending_refresh:
+                self.after(0, self._start_refresh_thread)
 
     def _update_ui(self, assets, photos, videos, total_bytes, stubs, space):
         self.app.selected_assets = assets
