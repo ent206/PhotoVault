@@ -326,7 +326,7 @@ class PhotoVaultAPI:
     def _ping_worker(self) -> None:
         consecutive_failures = 0
         while True:
-            time.sleep(6)
+            time.sleep(2)  # Faster polling for quicker disconnect detection
             with self._device_lock:
                 device = self._device
             if device is None:
@@ -337,8 +337,8 @@ class PhotoVaultAPI:
                 alive = False
             if not alive:
                 consecutive_failures += 1
-                if consecutive_failures < 2:
-                    continue  # require 2 consecutive failures before declaring disconnect
+                if consecutive_failures < 3:
+                    continue  # require 3 consecutive failures before declaring disconnect (6s total)
             else:
                 consecutive_failures = 0
                 continue

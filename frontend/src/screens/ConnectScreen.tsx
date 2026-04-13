@@ -22,10 +22,11 @@ export default function ConnectScreen() {
       await waitForApi()
       if (cancelled) return
       api.connectDevice()
+      // Fast polling for quick connect detection (800ms)
       pollingRef.current = setInterval(() => {
         const state = useAppStore.getState().deviceState
         if (state !== "connected") api.connectDevice()
-      }, 2000)
+      }, 800)
     }
     startPolling()
     return () => {
@@ -40,7 +41,8 @@ export default function ConnectScreen() {
       pollingRef.current = null
     }
     if (deviceState === "disconnected" && !pollingRef.current) {
-      pollingRef.current = setInterval(() => api.connectDevice(), 2000)
+      api.connectDevice() // Immediate check
+      pollingRef.current = setInterval(() => api.connectDevice(), 800)
     }
   }, [deviceState])
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useAppStore } from "../store/useAppStore"
 import { api } from "../lib/api"
@@ -70,14 +70,17 @@ export default function ManageStorageScreen() {
     new Date().toISOString().split("T")[0]
   )
 
-  // Scan state
+  // Scan state from store for progress events
+  const scanState = useAppStore((s) => s.scanState)
+  const scanProgress = useAppStore((s) => s.scanProgress)
+  const scanError = useAppStore((s) => s.scanError)
+  const storeAssets = useAppStore((s) => s.assets)
+  const storeStats = useAppStore((s) => s.assetStats)
+  const handleEvent = useAppStore((s) => s.handleEvent)
+
+  // Local scan state
   const [isScanning, setIsScanning] = useState(false)
-  const [scanProgress, setScanProgress] = useState<{
-    phase: "db" | "exif"
-    pct: number
-    message: string
-  } | null>(null)
-  const [scanError, setScanError] = useState<string | null>(null)
+  const [localScanError, setLocalScanError] = useState<string | null>(null)
   const [allAssets, setAllAssets] = useState<PhotoAsset[]>([])
   const [activeFilter, setActiveFilter] = useState<string>("all")
   const [showResults, setShowResults] = useState(false)
@@ -98,6 +101,18 @@ export default function ManageStorageScreen() {
 
   // Tooltip state
   const [showScreenshotTip, setShowScreenshotTip] = useState(false)
+
+  // Watch for scan completion from store
+  useEffect(() => {
+    if (scanState === "done" && isScanning) {
+      setAllAssets(storeAssets)
+      setIsScanning(false)
+      setShowResults(true)
+    } else if (scanState === "error" && isScanning) {
+      setLocalScanError(scanError || "Scan failed")
+      setIsScanning(false)
+    }
+  }, [scanState, storeAssets, scanError, isScanning])
 
   const filteredAssets = useMemo(
     () => applyFilter(allAssets, activeFilter),
@@ -131,54 +146,29 @@ export default function ManageStorageScreen() {
   async function handleStartScan() {
     if (isScanning || isDeleting) return
     setIsScanning(true)
-    setScanError(null)
+    setLocalScanError(null)
     setShowResults(false)
     setAllAssets([])
     setDeleteResult(null)
+
+    // Clear previous scan state in store
+    handleEvent("scan:reset", {})
 
     try {
       const startIso = new Date(startDate).toISOString()
       const endIso = new Date(endDate + "T23:59:59.999Z").toISOString()
 
-      // Start scan
+      // Start scan - progress will come through events
       const result = await api.startScan(startIso, endIso)
       if (!result.ok) {
         throw new Error(result.error || "Scan failed")
       }
 
-      // Poll for assets
-      setScanProgress({ phase: "db", pct: 0, message: "Scanning iPhone…" })
-
-      let attempts = 0
-      const maxAttempts = 300 // 30 seconds max
-
-      while (attempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 100))
-        const listResult = await api.listAssets(startIso, endIso)
-
-        if (listResult.ok && listResult.assets) {
-          setAllAssets(listResult.assets)
-          setScanProgress({
-            phase: "exif",
-            pct: 100,
-            message: `Found ${listResult.assets.length.toLocaleString()} files`,
-          })
-          setTimeout(() => {
-            setIsScanning(false)
-            setScanProgress(null)
-            setShowResults(true)
-          }, 500)
-          return
-        }
-        attempts++
-      }
-
-      throw new Error("Scan timeout - please try again")
+      // Wait for scan to complete via store events (handled in useEffect)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      setScanError(msg)
+      setLocalScanError(msg)
       setIsScanning(false)
-      setScanProgress(null)
     }
   }
 
@@ -311,7 +301,7 @@ export default function ManageStorageScreen() {
 
         {/* Scan progress */}
         <AnimatePresence>
-          {scanProgress && (
+          {(isScanning || scanProgress) && (
             <motion.div
               className="w-full max-w-xs mt-6"
               initial={{ opacity: 0, height: 0 }}
@@ -322,12 +312,18 @@ export default function ManageStorageScreen() {
                 <motion.div
                   className="h-full bg-amber"
                   initial={{ width: 0 }}
-                  animate={{ width: `${scanProgress.pct}%` }}
+                  animate={{ width: `${scanProgress?.pct ?? 0}%` }}
                   transition={{ duration: 0.3 }}
                 />
               </div>
               <p className="text-xs text-muted text-center">
-                {scanProgress.message}
+                {scanProgress?.phase === "db"
+                  ? scanProgress.read_mb
+                    ? `Downloading database… ${Math.round(scanProgress.read_mb)} of ${Math.round(scanProgress.total_mb || 0)} MB`
+                    : "Reading iPhone database…"
+                  : scanProgress?.phase === "exif"
+                    ? `Scanning ${scanProgress.current} of ${scanProgress.total} files…`
+                    : "Scanning iPhone…"}
               </p>
             </motion.div>
           )}
@@ -335,14 +331,14 @@ export default function ManageStorageScreen() {
 
         {/* Scan error */}
         <AnimatePresence>
-          {scanError && (
+          {(localScanError || scanError) && (
             <motion.div
               className="mt-4 p-4 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center max-w-xs"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
             >
-              {scanError}
+              {localScanError || scanError}
             </motion.div>
           )}
         </AnimatePresence>

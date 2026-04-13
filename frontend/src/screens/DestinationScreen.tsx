@@ -11,7 +11,7 @@ export default function DestinationScreen() {
 
   const [drives,   setDrives]   = useState<DriveInfo[]>([])
   const [recents,  setRecents]  = useState<string[]>([])
-  const [selected, setSelected] = useState<string | null>(savedDest)
+  const [selected, setSelected] = useState<string | null>(null)
   const [subfolder, setSubfolder] = useState("")
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState<string | null>(null)

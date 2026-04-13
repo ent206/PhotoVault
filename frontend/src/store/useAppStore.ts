@@ -260,6 +260,16 @@ export const useAppStore = create<AppState>((set) => ({
         set({ scanState: "error", scanProgress: null, scanError: d.message as string })
         break
 
+      case "scan:reset":
+        set({
+          scanState: "idle",
+          scanProgress: null,
+          scanError: null,
+          assets: [],
+          assetStats: null,
+        })
+        break
+
       // ── Transfer ──────────────────────────────────────────────────────
       case "transfer:progress":
         set({ transferProgress: d as unknown as TransferProgress })
