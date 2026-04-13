@@ -75,7 +75,6 @@ export default function ManageStorageScreen() {
   const scanProgress = useAppStore((s) => s.scanProgress)
   const scanError = useAppStore((s) => s.scanError)
   const storeAssets = useAppStore((s) => s.assets)
-  const storeStats = useAppStore((s) => s.assetStats)
   const handleEvent = useAppStore((s) => s.handleEvent)
 
   // Local scan state
@@ -177,7 +176,8 @@ export default function ManageStorageScreen() {
     setShowConfirmDialog(false)
     setIsDeleting(true)
     setDeleteResult(null)
-    setDeleteProgress({ done: 0, total: filteredAssets.length, freed: 0 })
+    const total = filteredAssets.length
+    setDeleteProgress({ done: 0, total, freed: 0 })
 
     // Build destination path (use iPhone name or default)
     const destPath = device?.model
@@ -193,7 +193,6 @@ export default function ManageStorageScreen() {
       }
 
       // Simulate progress since we don't have real-time delete progress events
-      const total = filteredAssets.length
       const freed = filteredAssets.reduce((sum, a) => sum + a.file_size, 0)
 
       for (let i = 0; i <= total; i += Math.ceil(total / 20)) {

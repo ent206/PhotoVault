@@ -154,6 +154,34 @@ export const useAppStore = create<AppState>((set) => ({
       transferSessionId: null,
     }),
 
+  // Manage Storage Actions
+  setManageStorageFilter: (filter) => set({ manageStorageFilter: filter }),
+  setManageStorageViewMode: (mode) => set({ manageStorageViewMode: mode }),
+  toggleManageStorageSelection: (id) =>
+    set((state) => {
+      const newSet = new Set(state.manageStorageSelectedIds)
+      if (newSet.has(id)) {
+        newSet.delete(id)
+      } else {
+        newSet.add(id)
+      }
+      return { manageStorageSelectedIds: newSet }
+    }),
+  selectAllManageStorage: () =>
+    set((state) => ({
+      manageStorageSelectedIds: new Set(state.manageStorageAssets.map((a) => a.id)),
+    })),
+  clearManageStorageSelection: () => set({ manageStorageSelectedIds: new Set() }),
+  clearManageStorage: () =>
+    set({
+      manageStorageAssets: [],
+      manageStorageStats: null,
+      manageStorageScanState: "idle",
+      manageStorageScanProgress: null,
+      manageStorageScanError: null,
+      manageStorageSelectedIds: new Set(),
+    }),
+
   handleEvent: (event, data) => {
     const d = data as Record<string, unknown>
 

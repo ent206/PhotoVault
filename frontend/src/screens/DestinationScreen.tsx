@@ -7,7 +7,6 @@ import type { DriveInfo } from "../lib/types"
 export default function DestinationScreen() {
   const navigate     = useAppStore((s) => s.navigate)
   const setDest      = useAppStore((s) => s.setDestination)
-  const savedDest    = useAppStore((s) => s.destination)
 
   const [drives,   setDrives]   = useState<DriveInfo[]>([])
   const [recents,  setRecents]  = useState<string[]>([])
