@@ -11,6 +11,7 @@ export default function DestinationScreen() {
   const [drives,   setDrives]   = useState<DriveInfo[]>([])
   const [recents,  setRecents]  = useState<string[]>([])
   const [selected, setSelected] = useState<string | null>(null)
+  const [hoveredRecent, setHoveredRecent] = useState<string | null>(null)
   const [subfolder, setSubfolder] = useState("")
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState<string | null>(null)
@@ -76,9 +77,9 @@ export default function DestinationScreen() {
         )}
         {error && <p className="text-danger text-sm mb-6">{error}</p>}
 
-        {/* Recent */}
+        {/* Recents */}
         {recents.length > 0 && (
-          <Section label="Recent">
+          <Section label="Recents">
             {recents.map((p) => (
               <DestRow
                 key={p}
@@ -87,6 +88,9 @@ export default function DestinationScreen() {
                 sub={p}
                 selected={selected === p}
                 onSelect={() => setSelected(p)}
+                onHover={(hovering) => setHoveredRecent(hovering ? p : null)}
+                showRemove={hoveredRecent === p}
+                onRemove={() => setRecents((prev) => prev.filter((r) => r !== p))}
               />
             ))}
           </Section>
@@ -184,36 +188,56 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 function DestRow({
-  icon, label, sub, badge, selected, onSelect,
+  icon, label, sub, badge, selected, onSelect, onHover, showRemove, onRemove,
 }: {
   icon: string; label: string; sub: string; badge?: string; selected: boolean; onSelect: () => void
+  onHover?: (hovering: boolean) => void
+  showRemove?: boolean
+  onRemove?: () => void
 }) {
   return (
-    <button
-      onClick={onSelect}
-      className={`w-full text-left flex items-center gap-3.5 px-4 py-3.5 rounded-xl border transition-all duration-150 ${
+    <div
+      className={`w-full flex items-center gap-2 rounded-xl border transition-all duration-150 ${
         selected
           ? "border-amber/40 bg-amber/[0.07]"
           : "border-border hover:border-border-hi hover:bg-white/[0.02]"
       }`}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
     >
-      <span className="text-base shrink-0">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium font-sans text-text truncate">{label}</p>
-        <p className="text-xs text-muted font-sans truncate mt-0.5">{sub}</p>
-      </div>
-      {badge && (
-        <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted font-sans shrink-0">
-          {badge}
-        </span>
+      <button
+        onClick={onSelect}
+        className="flex-1 text-left flex items-center gap-3.5 px-4 py-3.5"
+      >
+        <span className="text-base shrink-0">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium font-sans text-text truncate">{label}</p>
+          <p className="text-xs text-muted font-sans truncate mt-0.5">{sub}</p>
+        </div>
+        {badge && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted font-sans shrink-0">
+            {badge}
+          </span>
+        )}
+        {selected && (
+          <span className="text-amber shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </span>
+        )}
+      </button>
+      {showRemove && onRemove && !selected && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
+          className="mr-3 px-2 py-1 text-[10px] text-muted hover:text-danger transition-colors"
+        >
+          Remove
+        </button>
       )}
-      {selected && (
-        <span className="text-amber shrink-0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </span>
-      )}
-    </button>
+    </div>
   )
 }

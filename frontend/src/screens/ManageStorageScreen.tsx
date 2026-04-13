@@ -69,6 +69,7 @@ export default function ManageStorageScreen() {
   const [endDate, setEndDate] = useState<string>(() =>
     new Date().toISOString().split("T")[0]
   )
+  const [dateRangeConfirmed, setDateRangeConfirmed] = useState(false)
 
   // Scan state from store for progress events
   const scanState = useAppStore((s) => s.scanState)
@@ -140,6 +141,8 @@ export default function ManageStorageScreen() {
       : new Date(2000, 0, 1)
     setStartDate(start.toISOString().split("T")[0])
     setEndDate(end.toISOString().split("T")[0])
+    setDateRangeConfirmed(false)
+    setShowResults(false)
   }
 
   async function handleStartScan() {
@@ -265,13 +268,17 @@ export default function ManageStorageScreen() {
         </div>
 
         {/* Date inputs */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted">Start Date</label>
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value)
+                setDateRangeConfirmed(false)
+                setShowResults(false)
+              }}
               disabled={isScanning || isDeleting}
               className="field text-sm"
             />
@@ -282,21 +289,41 @@ export default function ManageStorageScreen() {
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                setEndDate(e.target.value)
+                setDateRangeConfirmed(false)
+                setShowResults(false)
+              }}
               disabled={isScanning || isDeleting}
               className="field text-sm"
             />
           </div>
         </div>
 
-        {/* Preview button */}
-        <button
-          onClick={handleStartScan}
-          disabled={isScanning || isDeleting || !startDate || !endDate}
-          className="btn-amber w-full max-w-xs py-3 text-sm tracking-wide disabled:opacity-50"
-        >
-          {isScanning ? "Scanning…" : "Preview Files"}
-        </button>
+        {/* Date range selection */}
+        {!dateRangeConfirmed && (
+          <button
+            onClick={() => setDateRangeConfirmed(true)}
+            disabled={!startDate || !endDate || isScanning || isDeleting}
+            className="btn-secondary w-full max-w-xs py-3 text-sm tracking-wide mb-4 disabled:opacity-50"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Select This Date Range
+          </button>
+        )}
+
+        {/* Preview button - only shown after date range confirmed */}
+        {dateRangeConfirmed && (
+          <button
+            onClick={handleStartScan}
+            disabled={isScanning || isDeleting}
+            className="btn-amber w-full max-w-xs py-3 text-sm tracking-wide disabled:opacity-50"
+          >
+            {isScanning ? "Scanning…" : "Preview Files"}
+          </button>
+        )}
 
         {/* Scan progress */}
         <AnimatePresence>
