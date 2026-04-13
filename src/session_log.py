@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -43,11 +43,39 @@ class SessionLog:
                 break
         self.save(session)
 
+    def dismiss(self, session_id: str) -> None:
+        """Mark all pending/in-progress files as failed so the session is
+        considered complete and won't surface in find_incomplete again."""
+        try:
+            session = self.load(session_id)
+            dirty = False
+            for f in session.files:
+                if f.status in (TransferStatus.PENDING, TransferStatus.IN_PROGRESS):
+                    f.status = TransferStatus.FAILED
+                    f.error = "dismissed"
+                    dirty = True
+            if dirty:
+                self.save(session)
+        except Exception:
+            pass
+
     def find_incomplete(self) -> List[TransferSession]:
+        cutoff = datetime.now() - timedelta(days=7)
         result = []
         for p in self.log_dir.glob("*.json"):
             try:
                 session = self.load(p.stem)
+                # Ignore sessions older than 7 days — not worth resuming
+                if session.started_at < cutoff:
+                    continue
+                # Sanitize stuck IN_PROGRESS files → FAILED so they don't
+                # block completion forever after a crash or force-quit
+                stuck = [f for f in session.files if f.status == TransferStatus.IN_PROGRESS]
+                if stuck:
+                    for f in stuck:
+                        f.status = TransferStatus.FAILED
+                        f.error = "interrupted"
+                    self.save(session)
                 if not session.is_complete:
                     result.append(session)
             except Exception:

@@ -13,20 +13,50 @@ class Screen2Destination(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent")
         self.app = master
         self._selected_path: Optional[Path] = None
+        self._drive_rows: dict = {}
 
         self._build_ui()
         self._load_drives()
-        self._restore_last()
 
     def _build_ui(self):
         ctk.CTkLabel(
             self, text="Choose Destination",
             font=ctk.CTkFont(size=26, weight="bold")
-        ).pack(pady=(40, 4))
+        ).pack(pady=(24, 4))
         ctk.CTkLabel(
             self, text="Where should your photos be saved?",
             font=ctk.CTkFont(size=13), text_color="gray60"
-        ).pack(pady=(0, 24))
+        ).pack(pady=(0, 12))
+
+        # Favorites (recent destinations)
+        recents = [p for p in config.get_recent_destinations() if Path(p).exists()]
+        if recents:
+            ctk.CTkLabel(
+                self, text="Recent Destinations",
+                font=ctk.CTkFont(size=12, weight="bold"), text_color="gray50"
+            ).pack(anchor="w", padx=60)
+
+            self.recents_frame = ctk.CTkFrame(self, fg_color="transparent")
+            self.recents_frame.pack(padx=60, pady=(4, 8), fill="x")
+            self._recent_rows: dict = {}
+
+            for p in recents:
+                row = ctk.CTkFrame(self.recents_frame, fg_color="gray20", corner_radius=8)
+                row.pack(fill="x", pady=3, padx=4)
+                ctk.CTkLabel(
+                    row, text=Path(p).name,
+                    font=ctk.CTkFont(size=13, weight="bold")
+                ).pack(side="left", padx=12, pady=8)
+                ctk.CTkLabel(
+                    row, text=p,
+                    font=ctk.CTkFont(size=11), text_color="gray60"
+                ).pack(side="left")
+                btn = ctk.CTkButton(
+                    row, text="Select", width=80,
+                    command=lambda path=Path(p): self._select(path)
+                )
+                btn.pack(side="right", padx=8)
+                self._recent_rows[p] = (row, btn)
 
         # Drive list label
         ctk.CTkLabel(
@@ -35,8 +65,8 @@ class Screen2Destination(ctk.CTkFrame):
         ).pack(anchor="w", padx=60)
 
         # Scrollable drive list
-        self.drives_frame = ctk.CTkScrollableFrame(self, height=160, width=780)
-        self.drives_frame.pack(padx=60, pady=(4, 16), fill="x")
+        self.drives_frame = ctk.CTkScrollableFrame(self, height=110, width=780)
+        self.drives_frame.pack(padx=60, pady=(4, 8), fill="x")
 
         # Custom folder row
         custom_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -68,7 +98,13 @@ class Screen2Destination(ctk.CTkFrame):
             self, text="Continue →", width=200, command=self._on_next,
             state="disabled", font=ctk.CTkFont(size=14, weight="bold")
         )
-        self.next_btn.pack(pady=24)
+        self.next_btn.pack(pady=16)
+
+        ctk.CTkButton(
+            self, text="Manage Storage", width=180,
+            fg_color="gray30", hover_color="gray40",
+            command=lambda: self.app.show_screen("manage_storage")
+        ).pack(pady=(0, 8))
 
     def _load_drives(self):
         for widget in self.drives_frame.winfo_children():
@@ -80,6 +116,7 @@ class Screen2Destination(ctk.CTkFrame):
                 text="No drives found. Use Browse to pick a folder."
             ).pack()
             return
+        self._drive_rows.clear()
         for drive in drives:
             row = ctk.CTkFrame(self.drives_frame, fg_color="gray20", corner_radius=8)
             row.pack(fill="x", pady=3, padx=4)
@@ -93,10 +130,12 @@ class Screen2Destination(ctk.CTkFrame):
                 text=f"{human_size(drive.free_bytes)} free of {human_size(drive.total_bytes)}",
                 font=ctk.CTkFont(size=11), text_color="gray60"
             ).pack(side="left")
-            ctk.CTkButton(
+            btn = ctk.CTkButton(
                 row, text="Select", width=80,
                 command=lambda p=drive.path: self._select(p)
-            ).pack(side="right", padx=8)
+            )
+            btn.pack(side="right", padx=8)
+            self._drive_rows[drive.path] = (row, btn)
 
     def _browse(self):
         path = filedialog.askdirectory(title="Choose destination folder")
@@ -107,6 +146,20 @@ class Screen2Destination(ctk.CTkFrame):
         self._selected_path = path
         self.path_label.configure(text=str(path))
         self.next_btn.configure(state="normal")
+        for drive_path, (row, btn) in self._drive_rows.items():
+            if drive_path == path:
+                row.configure(fg_color="#1f538d")
+                btn.configure(text="✓ Selected", fg_color="#144870")
+            else:
+                row.configure(fg_color="gray20")
+                btn.configure(text="Select", fg_color=("#3B8ED0", "#1F6AA5"))
+        for recent_path, (row, btn) in getattr(self, "_recent_rows", {}).items():
+            if Path(recent_path) == path:
+                row.configure(fg_color="#1f538d")
+                btn.configure(text="✓ Selected", fg_color="#144870")
+            else:
+                row.configure(fg_color="gray20")
+                btn.configure(text="Select", fg_color=("#3B8ED0", "#1F6AA5"))
 
     def _restore_last(self):
         last = config.get_last_destination()

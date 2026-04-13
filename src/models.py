@@ -21,6 +21,7 @@ class PhotoAsset:
     media_type: str  # "photo", "video", "live_photo_image", "live_photo_video"
     live_photo_pair_id: Optional[str] = None
     is_icloud_stub: bool = False
+    is_screenshot: bool = False
 
 
 @dataclass

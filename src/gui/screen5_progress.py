@@ -60,9 +60,19 @@ class Screen5Progress(ctk.CTkFrame):
         self.eta_label = ctk.CTkLabel(self, text="", font=ctk.CTkFont(size=12))
         self.eta_label.pack(pady=4)
 
+        # Sleep warning banner (hidden by default)
+        self.sleep_banner = ctk.CTkFrame(self, fg_color="#7a4400", corner_radius=8)
+        self.sleep_label = ctk.CTkLabel(
+            self.sleep_banner,
+            text="⚠ Connection hiccup — retrying…",
+            font=ctk.CTkFont(size=12), text_color="#FFB74D"
+        )
+        self.sleep_label.pack(pady=10, padx=16)
+
         # Pause and Cancel buttons
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
         btn_frame.pack(pady=24)
+        self._btn_frame = btn_frame
 
         self.pause_btn = ctk.CTkButton(
             btn_frame, text="Pause", width=140,
@@ -87,6 +97,8 @@ class Screen5Progress(ctk.CTkFrame):
             session_log=self.app.session_log,
             options=self.app.transfer_options,
             on_progress=self._on_progress,
+            on_device_sleeping=self._on_device_sleeping,
+            on_device_resumed=self._on_device_resumed,
         )
         thread = threading.Thread(target=self._run_transfer, daemon=True)
         thread.start()
@@ -111,9 +123,12 @@ class Screen5Progress(ctk.CTkFrame):
         self.count_label.configure(
             text=f"{p.files_done:,} of {p.files_total:,} files"
         )
-        self.size_label.configure(
-            text=f"{human_size(p.bytes_done)} of {human_size(p.bytes_total)}"
-        )
+        if p.bytes_total > 0:
+            self.size_label.configure(
+                text=f"{human_size(p.bytes_done)} of {human_size(p.bytes_total)}"
+            )
+        elif p.bytes_done > 0:
+            self.size_label.configure(text=f"{human_size(p.bytes_done)} transferred")
         if p.speed_mbps > 0:
             self.speed_label.configure(text=f"{p.speed_mbps:.1f} MB/s")
         if p.eta_seconds > 0:
@@ -141,6 +156,25 @@ class Screen5Progress(ctk.CTkFrame):
             return
         self.app.transfer_results = results
         self.app.show_screen("complete")
+
+    def _on_device_sleeping(self, retry_in: int):
+        self.after(0, self._show_sleep_banner, retry_in)
+
+    def _on_device_resumed(self):
+        self.after(0, self._hide_sleep_banner)
+
+    def _show_sleep_banner(self, retry_in: int):
+        if not self.winfo_exists():
+            return
+        self.sleep_label.configure(
+            text=f"⚠ Connection hiccup — retrying in {retry_in}s…"
+        )
+        self.sleep_banner.pack(before=self._btn_frame, padx=80, pady=(0, 8), fill="x")
+
+    def _hide_sleep_banner(self):
+        if not self.winfo_exists():
+            return
+        self.sleep_banner.pack_forget()
 
     def _on_error(self, msg: str):
         if not self.winfo_exists():

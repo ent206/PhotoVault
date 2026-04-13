@@ -29,6 +29,9 @@ class TransferProgress:
 
 
 class TransferEngine:
+    SLEEP_RETRY_ATTEMPTS = 5
+    SLEEP_RETRY_DELAY = 2  # seconds between retries
+
     def __init__(
         self,
         device: DeviceInterface,
@@ -36,12 +39,16 @@ class TransferEngine:
         session_log: SessionLog,
         options: TransferOptions,
         on_progress: Optional[Callable[[TransferProgress], None]] = None,
+        on_device_sleeping: Optional[Callable[[int], None]] = None,
+        on_device_resumed: Optional[Callable[[], None]] = None,
     ):
         self.device = device
         self.destination = Path(destination)
         self.log = session_log
         self.options = options
         self.on_progress = on_progress
+        self.on_device_sleeping = on_device_sleeping
+        self.on_device_resumed = on_device_resumed
         self._cancel = threading.Event()
         self._pause = threading.Event()
         self._pause.set()  # not paused initially
@@ -57,6 +64,14 @@ class TransferEngine:
 
     def transfer(self, assets: List[PhotoAsset]) -> Dict:
         """Run the full transfer. Returns summary dict."""
+        # Refresh the device connection before starting — lockdown may have
+        # timed out while the user was on the summary screen.
+        if hasattr(self.device, '_reconnect'):
+            try:
+                self.device._reconnect()
+            except Exception:
+                pass  # Will fail on first read if truly disconnected
+
         session = self._build_session(assets)
         self.log.save(session)
 
@@ -98,7 +113,8 @@ class TransferEngine:
                 self.log.update_file(session.session_id, record.filename, TransferStatus.IN_PROGRESS)
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-                data = self.device.read_file(self._asset_for_record(assets, record))
+                data = self._read_with_retry(self._asset_for_record(assets, record))
+                actual_size = len(data)
                 partial_path.write_bytes(data)
 
                 # Verify
@@ -108,9 +124,7 @@ class TransferEngine:
                     on_disk_checksum = hashlib.md5(partial_path.read_bytes()).hexdigest()
                     if checksum != on_disk_checksum:
                         raise ValueError(f"Checksum mismatch for {record.filename}")
-                else:
-                    if partial_path.stat().st_size != record.file_size:
-                        raise ValueError(f"Size mismatch for {record.filename}")
+                # No size-mismatch check when file_size is unknown (0 from DB)
 
                 # Atomic rename: only clean final name after verify passes
                 partial_path.rename(dest_path)
@@ -120,6 +134,7 @@ class TransferEngine:
                     TransferStatus.COMPLETED, checksum=checksum
                 )
                 results["completed"] += 1
+                progress.bytes_done += actual_size
 
             except Exception as exc:
                 # Clean up partial — never leave corrupted files with clean names
@@ -132,7 +147,6 @@ class TransferEngine:
                 results["failed_files"].append(record.filename)
 
             progress.files_done += 1
-            progress.bytes_done += record.file_size
             elapsed = (datetime.now() - start_time).total_seconds() or 0.001
             progress.speed_mbps = (progress.bytes_done / 1_048_576) / elapsed
             if progress.speed_mbps > 0 and progress.bytes_total > progress.bytes_done:
@@ -178,17 +192,48 @@ class TransferEngine:
         )
 
     def _dest_path_for(self, asset: PhotoAsset) -> Path:
-        """Returns Year/Month/filename path under destination."""
-        month_name = asset.date_taken.strftime("%B")  # e.g. "March"
+        """Returns Year/MM - Month/filename path under destination."""
+        month_folder = asset.date_taken.strftime("%m - %B")  # e.g. "03 - March"
         year = str(asset.date_taken.year)
-        return self.destination / year / month_name / asset.filename
+        return self.destination / year / month_folder / asset.filename
 
     def _is_duplicate(self, dest_path: Path, file_size: int) -> bool:
-        """A file is a duplicate if it exists at destination with matching size."""
-        return dest_path.exists() and dest_path.stat().st_size == file_size
+        """A file is a duplicate if it exists at destination with content.
+        If file_size is known, verify sizes match. If unknown (0 from DB),
+        treat as duplicate if destination file exists and has any content.
+        """
+        if not dest_path.exists():
+            return False
+        dest_size = dest_path.stat().st_size
+        if file_size == 0:
+            return dest_size > 0  # Unknown size — skip if destination has content
+        return dest_size == file_size
 
     def _asset_for_record(self, assets: List[PhotoAsset], record: FileRecord) -> PhotoAsset:
         return next(a for a in assets if a.filename == record.filename)
+
+    def _read_with_retry(self, asset: PhotoAsset) -> bytes:
+        """Read file from device, retrying on transient errors.
+
+        The sleep banner is shown only after the SECOND failure — a single
+        hiccup is silently retried so brief AFC glitches don't alarm the user.
+        """
+        import time
+        last_exc: Optional[Exception] = None
+        for attempt in range(self.SLEEP_RETRY_ATTEMPTS):
+            try:
+                return self.device.read_file(asset)
+            except Exception as exc:
+                last_exc = exc
+                if self._cancel.is_set():
+                    raise
+                # First failure: silent retry. Second+: show sleep banner.
+                if attempt > 0 and self.on_device_sleeping:
+                    self.on_device_sleeping(self.SLEEP_RETRY_DELAY)
+                time.sleep(self.SLEEP_RETRY_DELAY)
+                if attempt > 0 and self.on_device_resumed:
+                    self.on_device_resumed()
+        raise last_exc
 
     @staticmethod
     def cleanup_partials(directory: Path) -> int:

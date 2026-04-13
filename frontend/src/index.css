@@ -1,0 +1,242 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Theme tokens                                                                 */
+/* :root       = Light — "Warm Parchment"                                      */
+/* html.dark   = Dark  — "Warm Obsidian"                                       */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --rgb-bg:        247 243 238;   /* #f7f3ee */
+  --rgb-surface:   240 235 227;   /* #f0ebe3 */
+  --rgb-card:      237 231 222;   /* #ede7de */
+  --rgb-card-hi:   228 221 211;   /* #e4ddd3 */
+  --rgb-border:    212 204 194;   /* #d4ccc2 */
+  --rgb-border-hi: 191 181 168;   /* #bfb5a8 */
+  --rgb-text:      26 23 20;      /* #1a1714 */
+  --rgb-muted:     122 110 98;    /* #7a6e62 */
+  --rgb-muted-hi:  92 81 71;      /* #5c5147 */
+  --rgb-amber:     212 146 74;    /* #d4924a */
+  --rgb-amber-dim: 160 100 40;    /* #a06428 */
+  --rgb-success:   61 138 90;     /* #3d8a5a */
+  --rgb-danger:    184 60 60;     /* #b83c3c */
+  --rgb-warn:      176 106 40;    /* #b06a28 */
+
+  --grain-opacity:  0.015;
+  --grain-blend:    multiply;
+  --card-shadow:    0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+  --screen-gradient: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212,146,74,0.03) 0%, transparent 60%);
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a6e62'/%3E%3C/svg%3E");
+  --scrollbar-thumb: #bfb5a8;
+}
+
+html.dark {
+  --rgb-bg:        12 11 9;       /* #0c0b09 */
+  --rgb-surface:   22 20 16;      /* #161410 */
+  --rgb-card:      30 27 23;      /* #1e1b17 */
+  --rgb-card-hi:   36 32 24;      /* #242018 */
+  --rgb-border:    45 42 36;      /* #2d2a24 */
+  --rgb-border-hi: 61 58 50;      /* #3d3a32 */
+  --rgb-text:      240 235 227;   /* #f0ebe3 */
+  --rgb-muted:     107 99 87;     /* #6b6357 */
+  --rgb-muted-hi:  138 126 111;   /* #8a7e6f */
+  --rgb-amber:     212 146 74;    /* #d4924a — same in both */
+  --rgb-amber-dim: 138 94 46;     /* #8a5e2e */
+  --rgb-success:   95 168 118;    /* #5fa876 */
+  --rgb-danger:    201 85 85;     /* #c95555 */
+  --rgb-warn:      200 135 74;    /* #c8874a */
+
+  --grain-opacity:  0.028;
+  --grain-blend:    overlay;
+  --card-shadow:    0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
+  --screen-gradient: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212,146,74,0.055) 0%, transparent 60%);
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6357'/%3E%3C/svg%3E");
+  --scrollbar-thumb: #3d3a32;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Base                                                                         */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: rgb(var(--rgb-bg));
+  }
+
+  body {
+    font-family: "DM Sans", system-ui, sans-serif;
+    color: rgb(var(--rgb-text));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Grain overlay — SVG noise, very subtle */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: var(--grain-blend);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 180px 180px;
+  }
+
+  /* No text selection in app UI */
+  * { -webkit-user-select: none; user-select: none; }
+  input, textarea { -webkit-user-select: text; user-select: text; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+
+  /* Select elements */
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: var(--select-arrow);
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px !important;
+    cursor: pointer;
+  }
+
+  select option {
+    background: rgb(var(--rgb-card));
+    color: rgb(var(--rgb-text));
+  }
+
+  /* Smooth theme transitions — applied briefly via JS during toggle */
+  .theme-transitioning *,
+  .theme-transitioning *::before,
+  .theme-transitioning *::after {
+    transition:
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      color 0.2s ease,
+      box-shadow 0.25s ease !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Components                                                                   */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+@layer components {
+  /* ── Buttons ── */
+  .btn-amber {
+    @apply inline-flex items-center justify-center gap-2
+           bg-amber text-[#1a1714] font-sans font-medium
+           px-6 py-2.5 rounded-lg
+           transition-all duration-150
+           hover:brightness-110 active:scale-[0.98]
+           disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:brightness-100;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-muted font-sans font-medium
+           px-6 py-2.5 rounded-lg border border-border
+           transition-all duration-150
+           hover:text-text hover:border-border-hi hover:bg-text/[0.03]
+           active:scale-[0.98]
+           disabled:opacity-35 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2
+           bg-danger/90 text-white font-sans font-medium
+           px-6 py-2.5 rounded-lg
+           transition-all duration-150
+           hover:bg-danger active:scale-[0.98]
+           disabled:opacity-35 disabled:cursor-not-allowed;
+  }
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-card border border-border rounded-xl shadow-card;
+  }
+
+  .card-inset {
+    @apply bg-surface border border-border rounded-xl;
+  }
+
+  /* ── Screen wrapper ── */
+  .screen {
+    @apply flex flex-col w-full h-full bg-bg overflow-hidden;
+    background-image: var(--screen-gradient);
+  }
+
+  /* ── Stat pill ── */
+  .stat-pill {
+    @apply px-3 py-1 rounded-full bg-text/[0.04] border border-border
+           text-xs text-muted font-mono;
+  }
+
+  /* ── Section label ── */
+  .label-xs {
+    @apply text-[10px] tracking-[0.18em] uppercase font-sans text-muted;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    @apply h-px bg-border w-full;
+  }
+
+  /* ── Input ── */
+  .field {
+    @apply w-full bg-surface border border-border rounded-lg
+           px-4 py-2.5 text-sm text-text placeholder:text-muted
+           font-sans outline-none
+           focus:border-amber/60 focus:ring-1 focus:ring-amber/20
+           transition-all duration-150;
+  }
+
+  /* ── Toggle ── */
+  .toggle-track {
+    @apply w-10 h-[22px] rounded-full transition-colors duration-200 relative shrink-0;
+  }
+  .toggle-thumb {
+    @apply absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all duration-200;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Animations                                                                   */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes amber-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.08); }
+}
+
+@keyframes amber-ping {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+.amber-pulse { animation: amber-pulse 2.8s ease-in-out infinite; }
+.amber-ping  { animation: amber-ping  2s ease-out infinite; }
+
+@keyframes phone-breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.022); }
+}
+.phone-breathing { animation: phone-breathe 4s ease-in-out infinite; }
+
+/* ── Progress bar glow ── */
+.progress-glow {
+  box-shadow: 0 0 8px rgba(212, 146, 74, 0.6), 0 0 20px rgba(212, 146, 74, 0.25);
+}

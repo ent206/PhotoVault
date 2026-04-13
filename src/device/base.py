@@ -10,6 +10,18 @@ class DeviceInterface(ABC):
     def connect(self) -> None:
         """Establish connection to device. Raises ConnectionError on failure."""
 
+    def scan(self, on_progress=None, on_db_progress=None, start_date=None, end_date=None) -> None:
+        """Optional phase 2: scan device library (slow). No-op for mock devices."""
+        pass
+
+    def reset_scan(self) -> None:
+        """Clear cached scan results so the next scan runs fresh."""
+        pass
+
+    def ping(self) -> bool:
+        """Return True if the device is still reachable. Fast check."""
+        return True
+
     @abstractmethod
     def is_connected(self) -> bool:
         """Return True if device is currently connected."""
