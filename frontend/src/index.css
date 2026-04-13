@@ -160,7 +160,17 @@ html.dark {
            bg-danger/90 text-white font-sans font-medium
            px-6 py-2.5 rounded-lg
            transition-all duration-150
-           hover:bg-danger active:scale-[0.98]
+           hover:bg-danger-hover active:scale-[0.98]
+           disabled:opacity-35 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-surface text-text font-sans font-medium
+           px-6 py-2.5 rounded-lg border border-border
+           transition-all duration-150
+           hover:bg-card hover:border-border-hi
+           active:scale-[0.98]
            disabled:opacity-35 disabled:cursor-not-allowed;
   }
 

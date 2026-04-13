@@ -113,6 +113,7 @@ export type Screen =
   | "summary"
   | "progress"
   | "complete"
+  | "manage_storage"
 
 export type ScanState = "idle" | "scanning" | "done" | "error"
 export type DeviceState = "disconnected" | "connecting" | "connected" | "needs_tunnel" | "error"

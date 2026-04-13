@@ -9,6 +9,7 @@ import DatesScreen from "./screens/DatesScreen"
 import SummaryScreen from "./screens/SummaryScreen"
 import ProgressScreen from "./screens/ProgressScreen"
 import CompleteScreen from "./screens/CompleteScreen"
+import ManageStorageScreen from "./screens/ManageStorageScreen"
 import ThemeToggle from "./components/ThemeToggle"
 
 const SLIDE = {
@@ -78,6 +79,7 @@ export default function App() {
           {screen === "summary" && <SummaryScreen />}
           {screen === "progress" && <ProgressScreen />}
           {screen === "complete" && <CompleteScreen />}
+          {screen === "manage_storage" && <ManageStorageScreen />}
         </motion.div>
       </AnimatePresence>
     </div>

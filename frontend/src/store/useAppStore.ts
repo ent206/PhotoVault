@@ -55,6 +55,16 @@ interface AppState {
   deleteProgress: DeleteProgress | null
   deleteResults: DeleteResults | null
 
+  // Manage Storage
+  manageStorageAssets: PhotoAsset[]
+  manageStorageStats: AssetStats | null
+  manageStorageFilter: "all" | "photos" | "videos" | "screenshots"
+  manageStorageScanState: ScanState
+  manageStorageScanProgress: ScanProgress | null
+  manageStorageScanError: string | null
+  manageStorageSelectedIds: Set<string>
+  manageStorageViewMode: "grid" | "duplicates" | "analyzer" | "categories"
+
   // Resume
   resumeSession: IncompleteSession | null
 
@@ -67,6 +77,14 @@ interface AppState {
   setResumeSession: (s: IncompleteSession | null) => void
   clearTransfer: () => void
   handleEvent: (event: string, data: unknown) => void
+
+  // Manage Storage Actions
+  setManageStorageFilter: (filter: "all" | "photos" | "videos" | "screenshots") => void
+  setManageStorageViewMode: (mode: "grid" | "duplicates" | "analyzer" | "categories") => void
+  toggleManageStorageSelection: (id: string) => void
+  selectAllManageStorage: () => void
+  clearManageStorageSelection: () => void
+  clearManageStorage: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -101,6 +119,16 @@ export const useAppStore = create<AppState>((set) => ({
 
   deleteProgress: null,
   deleteResults: null,
+
+  // Manage Storage
+  manageStorageAssets: [],
+  manageStorageStats: null,
+  manageStorageFilter: "all",
+  manageStorageScanState: "idle",
+  manageStorageScanProgress: null,
+  manageStorageScanError: null,
+  manageStorageSelectedIds: new Set(),
+  manageStorageViewMode: "grid",
 
   resumeSession: null,
 

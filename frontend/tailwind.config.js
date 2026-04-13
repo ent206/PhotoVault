@@ -22,7 +22,9 @@ export default {
         "amber-glow":"rgba(212,146,74,0.15)",
         success:     "rgb(var(--rgb-success) / <alpha-value>)",
         danger:      "rgb(var(--rgb-danger) / <alpha-value>)",
+        "danger-hover": "rgb(168 45 45 / <alpha-value>)",
         warn:        "rgb(var(--rgb-warn) / <alpha-value>)",
+        "surface-hover": "rgb(var(--rgb-card) / <alpha-value>)",
       },
       fontFamily: {
         display: ['"Cormorant Garamond"', "Georgia", "serif"],
